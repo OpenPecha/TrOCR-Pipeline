@@ -18,3 +18,8 @@ train/ folder which contains all images for the training
 
 Make sure that in Fine_Tune.ipynb, you are using the correct names for the labels.csv file
 
+## Inference
+
+1. If you have a model, make sure it's unzipped and place it in the trocr/ folder.
+2. Then go to Inference.ipynb and make sure the folder name for the model matches your model's folder
+3. run the inference, use an image path to get the text

@@ -1,0 +1,4 @@
+# run these two commands from the root of the repo (TrOcr-Pipeline folder)
+
+aws s3 sync s3://monlam.ai.ocr/norbuketaka/images .\trocr\tibetan-dataset\train\
+aws s3 sync s3://monlam.ai.ocr/norbuketaka/transcript .\trocr\tibetan-dataset\transcript\

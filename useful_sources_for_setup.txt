@@ -1,0 +1,13 @@
+useful links:
+How to remove apt repository
+	https://www.linuxfordevices.com/tutorials/ubuntu/remove-an-apt-repository-ubuntu
+How to move ubuntu to another drive
+	https://superuser.com/questions/1550622/move-wsl2-file-system-to-another-drive
+How to uninstall cuda from ubuntu
+	https://www.deploymastery.com/2023/10/16/how-to-uninstall-cuda-windows-mac-linux/
+How to install cuda in ubuntu
+	https://youtu.be/R4m8YEixidI
+cuda toolkit archive
+	https://developer.nvidia.com/cuda-toolkit-archive
+install wsl2 in another drive
+	https://superuser.com/questions/1572834/is-there-any-way-to-install-wsl-on-non-c-drive

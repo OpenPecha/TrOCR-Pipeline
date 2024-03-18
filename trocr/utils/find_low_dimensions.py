@@ -6,7 +6,7 @@ df = pd.read_csv("../tibetan-dataset/labels_new.csv", delimiter=",")
 
 print(df.head())
 
-anomolies = Path('../tibetan-dataset/Anomolies')
+anomolies = Path('../tibetan-dataset/Anomalies')
 anomoly_files = list(anomolies.iterdir())
 anomoly_file_names = set([x.name for x in anomoly_files])
 

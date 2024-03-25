@@ -11,15 +11,24 @@ from torch.utils.data import Dataset, DataLoader
 from datautils import TibetanImageLinePairDataset
 from transformers import VisionEncoderDecoderModel, PreTrainedModel
 
+import torch.multiprocessing as mp
+from torch.utils.data.distributed import DistributedSampler
 from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.distributed import init_process_group
+from torch.distributed import init_process_group, destroy_process_group
+
 import os
 
 
-def ddp_setup():
-    init_process_group(backend='nccl')
-    torch.cuda.set_device(int(os.environ['LOCAL_RANK']))
+def ddp_setup(rank, world_size):
+    """
 
+    :param rank:
+    :param world_size:
+    :return:
+    """
+    os.environ['MASTER_ADDR'] = 'localhost'
+    os.environ['MASTER_PORT'] = '12355'
+    init_process_group(backend='nccl', rank=rank, world_size=world_size)
 
 class Trainer:
     def __init__(
@@ -46,7 +55,7 @@ class Trainer:
         #     print("Loading snapshot...")
         #     self._load_snapshot(snapshot_path)
 
-        # self.model = DDP(self.model, device_ids=[self.gpu_id])
+        self.model = DDP(self.model, device_ids=[self.gpu_id])
 
     def _load_snapshot(self, snapshot_path):
         loc = f"cuda:{self.gpu_id}"
@@ -102,7 +111,7 @@ class Trainer:
         return cer
 
     def _save_checkpoint(self, epoch):
-        ckp = self.model.state_dict()
+        ckp = self.model.module.state_dict()
         PATH = "checkpoint.pt"
         torch.save(ckp, PATH)
         print(f"Epoch {epoch} | Training checkpoint saved at {PATH}")
@@ -110,7 +119,7 @@ class Trainer:
     def train(self, max_epochs: int):
         for epoch in range(max_epochs):
             self._run_epoch(epoch)
-            if epoch % self.save_every == 0:
+            if self.gpu_id == 0 and epoch % self.save_every == 0:
                 self._save_checkpoint(epoch)
 
 
@@ -195,17 +204,20 @@ def prepare_dataloader(dataset: Dataset, batch_size: int, shuffle: bool = True):
     return DataLoader(
         dataset,
         batch_size=batch_size,
-        shuffle=True,
-        pin_memory=True
+        shuffle=False,
+        pin_memory=True,
+        sampler=DistributedSampler(dataset)
     )
 
 
-def main(device, total_epochs, save_every, batch_size):
+def main(rank: int, world_size: int, total_epochs, save_every, batch_size):
+    ddp_setup(rank, world_size)
     train_dataset, eval_dataset, processor, model, optimizer = load_train_objs()
     train_data = prepare_dataloader(train_dataset, batch_size)
     eval_data = prepare_dataloader(eval_dataset, batch_size, shuffle=False)
     trainer = Trainer(model, train_data, eval_data, processor, optimizer, device, save_every)
     trainer.train(total_epochs)
+    destroy_process_group()
 
 
 if __name__ == '__main__':
@@ -217,5 +229,5 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', default=4, type=int, help='Input batch size on each device (default: 32)')
     args = parser.parse_args()
 
-    device = 0
-    main(device, args.total_epochs, args.save_every, args.batch_size)
+    world_size = torch.cuda.device_count()
+    mp.spawn(main, args=(world_size, args.total_epochs, args.save_every, args.batch_size), nprocs=world_size)

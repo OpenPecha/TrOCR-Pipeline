@@ -94,7 +94,7 @@ class Trainer:
         valid_cer = 0.0
         with torch.no_grad():
             for batch in tqdm(self.eval_data):
-                batch = {k: v.to(device) for k, v in batch.items()}
+                batch = {k: v.to(self.gpu_id) for k, v in batch.items()}
                 cer = self._evaluate(batch)
                 valid_cer += cer
 
@@ -215,7 +215,7 @@ def main(rank: int, world_size: int, total_epochs, save_every, batch_size):
     train_dataset, eval_dataset, processor, model, optimizer = load_train_objs()
     train_data = prepare_dataloader(train_dataset, batch_size)
     eval_data = prepare_dataloader(eval_dataset, batch_size, shuffle=False)
-    trainer = Trainer(model, train_data, eval_data, processor, optimizer, device, save_every)
+    trainer = Trainer(model, train_data, eval_data, processor, optimizer, rank, save_every)
     trainer.train(total_epochs)
     destroy_process_group()
 

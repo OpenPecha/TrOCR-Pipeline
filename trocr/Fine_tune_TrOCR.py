@@ -136,7 +136,26 @@ def create_dataframe_from_data():
     df.rename(columns={'line_image_id': 'file_name'}, inplace=True)
 
     # remove the rows that their image file does not exist
-    df = df[~df['file_name'].isin(['I4PD45640075_1.jpg', 'I4PD45640075_2.jpg', 'I4PD45640075_8.jpg', 'I4PD45640075_9.jpg'])]
+    original_image_name = ''
+    thumbs_up = True
+    potential_missing_files = []
+    print('started')
+    for row in tqdm(df.iterrows(), total=df.shape[0]):
+        file_name = row[1]['file_name']
+        this_original_image_name = file_name.split('_')[0]
+        if this_original_image_name != original_image_name:
+            original_image_name = this_original_image_name
+            batch_name = row[1]['batch_name']
+            if not os.path.isfile('./tibetan-dataset/train/' + batch_name + '/' + file_name):
+                thumbs_up = False
+                potential_missing_files.append(file_name)
+            else:
+                thumbs_up = True
+        else:
+            if not thumbs_up:
+                potential_missing_files.append(file_name)
+
+    df = df[~df['file_name'].isin(potential_missing_files)]
 
     print("Removed rows with missing image files.")
 

@@ -1,0 +1,1 @@
+torchrun --standalone --nproc_per_node=gpu Fine_tune_TrOCR.py 10 1

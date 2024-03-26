@@ -248,5 +248,6 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', default=4, type=int, help='Input batch size on each device (default: 32)')
     args = parser.parse_args()
 
+    print('Hello')
     world_size = torch.cuda.device_count()
     mp.spawn(main, args=(world_size, args.total_epochs, args.save_every, args.batch_size), nprocs=world_size)

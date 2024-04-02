@@ -4,23 +4,25 @@ import pandas as pd
 import evaluate
 from tqdm import tqdm
 
-cer_metric = evaluate.load("cer")
-
 import torch
 from torch.utils.data import Dataset, DataLoader
 from datautils import TibetanImageLinePairDataset
 from transformers import VisionEncoderDecoderModel, PreTrainedModel
 
-import torch.multiprocessing as mp
 from torch.utils.data.distributed import DistributedSampler
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.distributed import init_process_group, destroy_process_group
 
 import os
 
+from trocr.customsamplers import DistributedEvalSampler
+
+cer_metric = evaluate.load("cer")
+
 
 def ddp_setup():
     init_process_group(backend='nccl')
+
 
 class Trainer:
     def __init__(
@@ -173,24 +175,7 @@ def split_train_test(df):
     return train_df, test_df
 
 
-def load_train_objs():
-    from transformers import TrOCRProcessor, ViTImageProcessor, RobertaTokenizer
-
-    encode, decode = "google/vit-base-patch16-224-in21k", "sangjeedondrub/tibetan-roberta-base"
-
-    feature_extractor = ViTImageProcessor.from_pretrained(encode)
-    tokenizer = RobertaTokenizer.from_pretrained(decode)
-    processor = TrOCRProcessor(image_processor=feature_extractor, tokenizer=tokenizer)
-
-    df = create_dataframe_from_data()
-    train_df, test_df = split_train_test(df)
-
-    train_set = TibetanImageLinePairDataset(root_dir='./tibetan-dataset/train/',
-                                            df=train_df,
-                                            processor=processor)
-    eval_set = TibetanImageLinePairDataset(root_dir='./tibetan-dataset/train/',
-                                           df=test_df,
-                                           processor=processor)
+def get_model(encode, decode, processor):
     model = VisionEncoderDecoderModel.from_encoder_decoder_pretrained(encode, decode)
 
     # set special tokens used for creating the decoder_input_ids from the labels
@@ -207,17 +192,49 @@ def load_train_objs():
     model.config.length_penalty = 2.5
     model.config.num_beams = 4
 
+    return model
+
+
+def get_processor(encode, decode):
+    from transformers import TrOCRProcessor, ViTImageProcessor, RobertaTokenizer
+    feature_extractor = ViTImageProcessor.from_pretrained(encode)
+    tokenizer = RobertaTokenizer.from_pretrained(decode)
+    processor = TrOCRProcessor(image_processor=feature_extractor, tokenizer=tokenizer)
+    return processor
+
+
+def load_train_objs():
+    # processor
+    encode, decode = "google/vit-base-patch16-224-in21k", "sangjeedondrub/tibetan-roberta-base"
+    processor = get_processor(encode, decode)
+
+    # dataset
+    df = create_dataframe_from_data()
+    train_df, test_df = split_train_test(df)
+
+    train_set = TibetanImageLinePairDataset(root_dir='./tibetan-dataset/train/',
+                                            df=train_df,
+                                            processor=processor)
+    eval_set = TibetanImageLinePairDataset(root_dir='./tibetan-dataset/train/',
+                                           df=test_df,
+                                           processor=processor)
+
+    # model
+    model = get_model(encode, decode, processor)
+
+    # optimizer
     optimizer = torch.optim.AdamW(model.parameters(), lr=5e-5)
+
     return train_set, eval_set, processor, model, optimizer
 
 
-def prepare_dataloader(dataset: Dataset, batch_size: int, shuffle: bool = True):
+def prepare_dataloader(dataset: Dataset, batch_size: int, is_eval: bool = False):
     return DataLoader(
         dataset,
         batch_size=batch_size,
         shuffle=False,
         pin_memory=True,
-        sampler=DistributedSampler(dataset)
+        sampler=DistributedSampler(dataset) if not is_eval else DistributedEvalSampler(dataset)
     )
 
 
@@ -225,7 +242,7 @@ def main(total_epochs, save_every, batch_size, snapshot_path: str = "snapshot.pt
     ddp_setup()
     train_dataset, eval_dataset, processor, model, optimizer = load_train_objs()
     train_data = prepare_dataloader(train_dataset, batch_size)
-    eval_data = prepare_dataloader(eval_dataset, batch_size, shuffle=False)
+    eval_data = prepare_dataloader(eval_dataset, batch_size, is_eval=True)
     trainer = Trainer(model, train_data, eval_data, processor, optimizer, save_every, snapshot_path)
     trainer.train(total_epochs)
     destroy_process_group()

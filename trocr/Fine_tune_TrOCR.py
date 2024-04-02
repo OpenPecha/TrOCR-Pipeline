@@ -75,7 +75,7 @@ class Trainer:
         print(f"[GPU{self.gpu_id}] Epoch {epoch} | Batchsize: {b_sz} | Steps: {len(self.train_data)}")
         self.model.train()
         train_loss = 0.0
-        for batch in tqdm(self.train_data):
+        for batch in tqdm(self.train_data, disable=self.gpu_id != 0):
             batch = {k: v.to(self.gpu_id) for k, v in batch.items()}
             loss = self._run_batch(batch)
             train_loss += loss
@@ -86,7 +86,7 @@ class Trainer:
         self.model.eval()
         valid_cer = 0.0
         with torch.no_grad():
-            for batch in tqdm(self.eval_data):
+            for batch in tqdm(self.eval_data, disable=self.gpu_id != 0):
                 batch = {k: v.to(self.gpu_id) for k, v in batch.items()}
                 cer = self._evaluate(batch)
                 valid_cer += cer

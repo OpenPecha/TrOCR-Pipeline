@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -104,17 +105,19 @@ class Trainer:
         return cer
 
     def _save_snapshot(self, epoch):
-        snapshot = {}
-        snapshot["MODEL_STATE"] = self.model.module.state_dict()
-        snapshot["EPOCHS_RUN"] = epoch
+        snapshot = {"MODEL_STATE": self.model.module.state_dict(), "EPOCHS_RUN": epoch}
         torch.save(snapshot, "snapshot.pt")
         print(f"Epoch {epoch} | Training checkpoint saved at snapshot.pt")
 
     def train(self, max_epochs: int):
+        start = time.time()
         for epoch in range(self.epochs_run, max_epochs):
             self._run_epoch(epoch)
             if self.gpu_id == 0 and epoch % self.save_every == 0:
                 self._save_snapshot(epoch)
+
+        end = time.time()
+        print(f"Training completed in {end - start} seconds")
 
 
 def create_dataframe_from_data():

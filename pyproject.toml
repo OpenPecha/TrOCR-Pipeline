@@ -8,6 +8,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.10"
 torch = {version = "2.2.1+cu118", source = "torch"}
+torchvision = {version = "0.17.1+cu118", source = "torch"}
 jupyter = "^1.0.0"
 transformers = "^4.37.2"
 pillow = "^10.2.0"

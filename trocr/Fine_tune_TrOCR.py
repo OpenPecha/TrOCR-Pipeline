@@ -18,6 +18,8 @@ import os
 
 from trocr.customsamplers import DistributedEvalSampler
 
+from torch.distributed.elastic.multiprocessing.errors import record
+
 cer_metric = evaluate.load("cer")
 
 
@@ -241,6 +243,7 @@ def prepare_dataloader(dataset: Dataset, batch_size: int, is_eval: bool = False)
     )
 
 
+@record
 def main(total_epochs, save_every, batch_size, snapshot_path: str = "snapshot.pt"):
     ddp_setup()
     train_dataset, eval_dataset, processor, model, optimizer = load_train_objs()

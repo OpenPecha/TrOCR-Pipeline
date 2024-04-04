@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 import evaluate
+from torch.distributed.elastic.multiprocessing.errors import record
 from tqdm import tqdm
 
 import torch
@@ -240,7 +241,7 @@ def prepare_dataloader(dataset: Dataset, batch_size: int, is_eval: bool = False)
         sampler=DistributedSampler(dataset) if not is_eval else DistributedEvalSampler(dataset)
     )
 
-
+@record
 def main(total_epochs, save_every, batch_size, snapshot_path: str = "snapshot.pt"):
     ddp_setup()
     train_dataset, eval_dataset, processor, model, optimizer = load_train_objs()

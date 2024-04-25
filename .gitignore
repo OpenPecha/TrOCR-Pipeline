@@ -1,2 +1,4 @@
 **/train/**
 trocr/tibetan-dataset/*.ps1!
+.env
+trocr/tibetan-dataset

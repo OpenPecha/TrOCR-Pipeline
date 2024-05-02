@@ -5,6 +5,8 @@ There are multiple versions of the TrOCR pipeline.
 One that might be the most important one is the accelerate version which can be found in the huggingface-trainer branch.
 Using accelerate, you can run the training in multiple scenarios. Whether you are training on a single GPU system or a multi-GPU system, the accelerate branch can optimize the training based on the system. https://youtu.be/t8Krzu-nSeY ( a good video on accelerate )  
 
+if you are using accelerate, only use trocr/Fine_tune_TrOCR.ipynb file, it's configured so that you can run multi-gpu in a notebook (something that vasi.ai likes)
+
 ## Installation
 
 1. install Poetry for python package manager

@@ -28,3 +28,9 @@ Make sure that in Fine_Tune.ipynb, you are using the correct names for the label
 1. If you have a model, make sure it's unzipped and place it in the trocr/ folder.
 2. Then go to Inference.ipynb and make sure the folder name for the model matches your model's folder
 3. run the inference, use an image path to get the text
+
+## Known issues
+When using poetry to download pytorch, there is a massive download.
+One way to get around it is to remove pytorch from poetry management and run pip from poetry instead of using `poetry add`
+So something like removing anything related to pytorch from pyproject.toml and then running `poetry run pip install torch`
+Although, maybe by the time you see this, the issue is resolved: https://github.com/python-poetry/poetry/issues/6409
